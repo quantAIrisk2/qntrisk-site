@@ -171,39 +171,34 @@
       </div>
     </div>
 
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title">Portfolio Holdings</span>
-          <span class="panel-badge" id="holdingsBadge">—</span>
-        </div>
-        <div style="padding:0;overflow-x:auto;">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Ticker</th><th>Name</th><th>Sector</th>
-                <th class="right">Qty</th><th class="right">Mkt Value</th>
-                <th class="right">Weight</th><th class="right">P&L</th>
-              </tr>
-            </thead>
-            <tbody id="holdingsBody">
-              <tr><td colspan="7" style="padding:20px;color:var(--text-dim);text-align:center;">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header">
+        <span class="panel-title">Portfolio Holdings</span>
+        <span class="panel-badge" id="holdingsBadge">—</span>
       </div>
-
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title">Top 5 Positions</span></div>
-        <div class="panel-body" id="top5Body">
-          <div class="skeleton" style="height:12px;margin-bottom:10px;"></div>
-          <div class="skeleton" style="height:12px;margin-bottom:10px;width:80%;"></div>
-          <div class="skeleton" style="height:12px;margin-bottom:10px;width:90%;"></div>
-          <div class="skeleton" style="height:12px;margin-bottom:10px;width:70%;"></div>
-          <div class="skeleton" style="height:12px;width:85%;"></div>
-        </div>
+      <div style="padding:0;overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ticker</th><th>Name</th><th>Sector</th>
+              <th class="right">Qty</th><th class="right">Mkt Value</th>
+              <th class="right">Weight</th>
+              <th class="right">DTD %</th><th class="right">MTD %</th><th class="right">YTD %</th>
+              <th class="right">P&L</th>
+            </tr>
+          </thead>
+          <tbody id="holdingsBody">
+            <tr><td colspan="10" style="padding:20px;color:var(--text-dim);text-align:center;">Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
+    </div>
 
+    <!-- Compact risk summary bar below holdings -->
+    <div class="panel" style="margin-bottom:16px;" id="riskSummaryBar">
+      <div class="panel-body" style="display:flex;flex-wrap:wrap;gap:24px;padding:12px 16px;" id="riskSummaryBarBody">
+        <div class="skeleton" style="height:14px;width:200px;"></div>
+      </div>
     </div>
 
     <div class="panel grid-full">
@@ -417,31 +412,25 @@ async function loadSummary(){
     document.getElementById('holdingsBody').innerHTML=holdings.map(h=>{
       const wt=h.marketValueDKK/totalMV*100;
       const pnlVal=h.unrealizedPnLDKK??0;
-      return `<tr>
-        <td><span class="ticker-tag">${h.ticker??''}</span></td>
+      const tk=h.ticker??'';
+      return `<tr data-ticker="${tk}">
+        <td><span class="ticker-tag">${tk}</span></td>
         <td style="color:var(--text-mid);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.securityName??''}</td>
         <td style="color:var(--text-dim);font-size:11px;">${h.sector??''}</td>
         <td class="right">${fmt.num(h.quantity)}</td>
         <td class="right">${fmt.dkk(h.marketValueDKK)}</td>
         <td class="right">${fmt.pct(wt)}</td>
+        <td class="right ret-dtd">—</td>
+        <td class="right ret-mtd">—</td>
+        <td class="right ret-ytd">—</td>
         <td class="right ${pnlVal>=0?'pos-val':'neg-val'}">${fmt.dkk(pnlVal)}</td>
       </tr>`;
-    }).join('');
-
-    // Top 5
-    const top5=[...holdings].sort((a,b)=>b.marketValueDKK-a.marketValueDKK).slice(0,5);
-    document.getElementById('top5Body').innerHTML=top5.map((h,i)=>{
-      const wt=h.marketValueDKK/totalMV*100;
-      return `<div class="exp-row">
-        <span class="exp-label">${h.ticker} · ${(h.securityName??'').split(' ')[0]}</span>
-        <div class="exp-bar-bg"><div class="exp-bar-fill" style="width:${Math.min(wt,100).toFixed(1)}%;background:${PAL[i]};"></div></div>
-        <span class="exp-pct">${fmt.pct(wt)}</span>
-      </div>`;
     }).join('');
 
     // Load async extras
     loadVarHistoryChart();
     loadRiskMetrics();
+    loadHoldingReturns();
 
   }catch(e){
     console.error('Summary error:',e);
@@ -575,8 +564,23 @@ async function loadRiskMetrics(){
         <span class="risk-value ${(rm.informationRatio??0)>=0?'pos-val':'neg-val'}">${fmtN(rm.informationRatio)}</span></div>
     `;
 
-    // ── Risk tab: Risk Metrics ─────────────────────────────────────────────────
+    // ── Compact risk summary bar (overview, below holdings) ─────────────────────
     const mv = varData.portfolioMarketValueDKK;
+    const barEl=document.getElementById('riskSummaryBarBody');
+    if(barEl) barEl.innerHTML=`
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">Value</b> ${fmt.dkk(mv)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">VaR 95%</b> ${fmt.dkk(varData.historicalVaR1dDKK)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">Sharpe</b> ${fmtN(rm.sharpeRatio)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">Sortino</b> ${fmtN(rm.sortinoRatio)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">Beta</b> ${fmtN(rm.beta)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">Alpha</b> <span class="${(rm.alpha??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.alpha)}</span></span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">Track.Err</b> ${fmtP(rm.trackingError)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">IR</b> ${fmtN(rm.informationRatio)}</span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">Max DD</b> <span class="neg-val">${fmtP(rm.maxDrawdown)}</span></span>
+      <span style="font-size:11px;color:var(--text-dim);white-space:nowrap;"><b style="color:var(--text);">As Of</b> ${asOf}</span>
+    `;
+
+    // ── Risk tab: Risk Metrics ─────────────────────────────────────────────────
     document.getElementById('riskMetricsBody').innerHTML = `
       <div class="risk-row"><span class="risk-label">Portfolio Value</span>
         <span class="risk-value">${fmt.dkk(mv)}</span></div>
@@ -601,6 +605,29 @@ async function loadRiskMetrics(){
       const el=document.getElementById(id);
       if(el) el.innerHTML=`<div class="error-msg">⚠ ${e.message}</div>`;
     });
+  }
+}
+
+async function loadHoldingReturns(){
+  try{
+    const r=await fetch(apiUrl('holding-returns'));
+    const d=await r.json();
+    if(!d.success) throw new Error(d.error||'holding-returns failed');
+    const rets=d.returns??{};
+    const fmtR=v=>(v!=null?(v>=0?'+':'')+v.toFixed(2)+'%':'—');
+    const cls=v=>(v==null?'':(v>=0?'pos-val':'neg-val'));
+    document.querySelectorAll('#holdingsBody tr[data-ticker]').forEach(row=>{
+      const tk=row.getAttribute('data-ticker');
+      const ret=rets[tk];
+      row.querySelector('.ret-dtd').textContent=fmtR(ret?.dtd??null);
+      row.querySelector('.ret-dtd').className='right ret-dtd '+cls(ret?.dtd??null);
+      row.querySelector('.ret-mtd').textContent=fmtR(ret?.mtd??null);
+      row.querySelector('.ret-mtd').className='right ret-mtd '+cls(ret?.mtd??null);
+      row.querySelector('.ret-ytd').textContent=fmtR(ret?.ytd??null);
+      row.querySelector('.ret-ytd').className='right ret-ytd '+cls(ret?.ytd??null);
+    });
+  }catch(e){
+    console.error('loadHoldingReturns error:',e);
   }
 }
 
