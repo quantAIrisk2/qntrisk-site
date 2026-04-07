@@ -42,7 +42,7 @@
 
   main{position:relative;z-index:1;padding:24px 28px;max-width:1600px;margin:0 auto;}
 
-  .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+  .kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;}
   .kpi{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 18px;position:relative;overflow:hidden;transition:border-color 0.2s;}
   .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0.4;}
   .kpi:hover{border-color:rgba(0,229,176,0.3);}
@@ -109,7 +109,7 @@
   ::-webkit-scrollbar-track{background:var(--bg);}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
-  @media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(3,1fr)}.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+  @media(max-width:1200px){.kpi-strip{grid-template-columns:repeat(3,1fr)}.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
   @media(max-width:720px){.kpi-strip{grid-template-columns:1fr 1fr}main{padding:16px}header{padding:0 16px}}
 </style>
 </head>
@@ -140,33 +140,38 @@
   <div class="tab-section visible" id="tab-overview">
     <div class="kpi-strip">
       <div class="kpi">
-        <div class="kpi-label">Portfolio Value</div>
-        <div class="kpi-value" id="kpi-mv"><div class="skeleton loading-kpi"></div></div>
-        <div class="kpi-sub" id="kpi-mv-sub"><div class="skeleton loading-sub"></div></div>
+        <div class="kpi-label">Portfolio YTD</div>
+        <div class="kpi-value" id="kpi-ytd"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-ytd-sub"><div class="skeleton loading-sub"></div></div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Unrealized P&L</div>
-        <div class="kpi-value" id="kpi-pnl"><div class="skeleton loading-kpi"></div></div>
-        <div class="kpi-sub" id="kpi-pnl-sub"><div class="skeleton loading-sub"></div></div>
+        <div class="kpi-label">Benchmark YTD</div>
+        <div class="kpi-value" id="kpi-bench-ytd"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-bench-ytd-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Excess Return YTD</div>
+        <div class="kpi-value" id="kpi-excess"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-excess-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Sharpe Ratio</div>
+        <div class="kpi-value" id="kpi-sharpe"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-sharpe-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ann. Volatility</div>
+        <div class="kpi-value" id="kpi-vol"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-vol-sub"><div class="skeleton loading-sub"></div></div>
       </div>
       <div class="kpi">
         <div class="kpi-label">VaR 95% (1-day)</div>
-        <div class="kpi-value" id="kpi-var"><div class="skeleton loading-kpi"></div></div>
-        <div class="kpi-sub" id="kpi-var-sub"><div class="skeleton loading-sub"></div></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Positions</div>
-        <div class="kpi-value" id="kpi-count"><div class="skeleton loading-kpi"></div></div>
-        <div class="kpi-sub" id="kpi-count-sub"><div class="skeleton loading-sub"></div></div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Top Sector</div>
-        <div class="kpi-value" id="kpi-sector"><div class="skeleton loading-kpi"></div></div>
-        <div class="kpi-sub" id="kpi-sector-sub"><div class="skeleton loading-sub"></div></div>
+        <div class="kpi-value" id="kpi-var1d"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-var1d-sub"><div class="skeleton loading-sub"></div></div>
       </div>
     </div>
 
-    <div class="grid-3">
+    <div class="grid-2">
       <div class="panel">
         <div class="panel-header">
           <span class="panel-title">Portfolio Holdings</span>
@@ -199,12 +204,6 @@
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-header"><span class="panel-title">Currency Split</span></div>
-        <div class="panel-body">
-          <div class="chart-wrap"><canvas id="currencyChart"></canvas></div>
-        </div>
-      </div>
     </div>
 
     <div class="panel grid-full">
@@ -239,6 +238,28 @@
         </div>
       </div>
     </div>
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Performance vs Benchmark</span>
+          <span class="panel-badge" id="riskMetricsBadge">URTH</span>
+        </div>
+        <div class="panel-body" id="perfMetricsBody">
+          <div class="skeleton" style="height:14px;margin-bottom:12px;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:80%;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:70%;"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Risk Metrics</span></div>
+        <div class="panel-body" id="riskMetricsBody">
+          <div class="skeleton" style="height:14px;margin-bottom:12px;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:75%;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:85%;"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="panel grid-full">
       <div class="panel-header">
         <span class="panel-title">VaR Over Time</span>
@@ -335,7 +356,7 @@ document.querySelectorAll('.tab').forEach(t=>{
   });
 });
 function loadTab(id){
-  if(id==='risk')loadRisk();
+  if(id==='risk'){loadRisk();loadRiskMetrics();}
   if(id==='exposures')loadExposures();
   if(id==='charts')loadMarketChart(); // auto-load default ticker
 }
@@ -386,9 +407,7 @@ async function loadSummary(){
     const pnlPct=(cost&&cost>0)?(pnl/cost*100):null;
     const count=d.positions??d.holdings?.length??0;
 
-    setKPI('kpi-mv',fmt.dkk(mv),`Cost: ${fmt.dkk(cost)}`,null);
-    setKPI('kpi-pnl',fmt.dkk(pnl),fmt.pct(pnlPct),pnl);
-    setKPI('kpi-count',String(count),d.currency??'DKK',null);
+    // Portfolio value/count still used for holdings badge (KPI strip now driven by loadRiskMetrics)
 
     const holdings=d.holdings??[];
     const totalMV=mv??1;
@@ -420,18 +439,9 @@ async function loadSummary(){
       </div>`;
     }).join('');
 
-    // Currency donut from holdings
-    const ccyMap={};
-    holdings.forEach(h=>{
-      const c=h.currency??'DKK';
-      ccyMap[c]=(ccyMap[c]??0)+(h.marketValueDKK/totalMV*100);
-    });
-    renderDonut('currencyChart',ccyMap);
-
     // Load async extras
-    loadVarForOverview();
-    loadTopSectorKPI();
     loadVarHistoryChart();
+    loadRiskMetrics();
 
   }catch(e){
     console.error('Summary error:',e);
@@ -518,6 +528,81 @@ async function loadVarHistoryChart(){
 // API: portfolioName, confidenceLevel, observations, averageDailyReturnPct,
 //      historicalVaR1dPct, historicalVaR1dDKK, portfolioMarketValueDKK,
 //      history[]: { date, varDkk }
+
+async function loadRiskMetrics(){
+  const fmtP=v=>(v!=null?(v>=0?'+':'')+v.toFixed(2)+'%':'—');
+  const fmtN=v=>(v!=null?v.toFixed(2):'—');
+  try{
+    const [rm, varData] = await Promise.all([
+      fetch(apiUrl('risk-metrics')).then(r=>r.json()),
+      fetch(apiUrl('historical-var')).then(r=>r.json()),
+    ]);
+    if(!rm.success) throw new Error(rm.error||'risk-metrics failed');
+
+    // ── 6-item KPI strip ──────────────────────────────────────────────────────
+    setKPI('kpi-ytd',    fmtP(rm.portfolioReturnYTD),  `DTD: ${fmtP(rm.portfolioReturnDTD)}`,  rm.portfolioReturnYTD);
+    setKPI('kpi-bench-ytd', fmtP(rm.benchmarkReturnYTD), `DTD: ${fmtP(rm.benchmarkReturnDTD)}`, rm.benchmarkReturnYTD);
+    setKPI('kpi-excess', fmtP(rm.excessReturnYTD),     `Alpha: ${fmtP(rm.alpha)}`,              rm.excessReturnYTD);
+    setKPI('kpi-sharpe', fmtN(rm.sharpeRatio),         `Sortino: ${fmtN(rm.sortinoRatio)}`,    rm.sharpeRatio);
+    setKPI('kpi-vol',    fmtP(rm.annualizedVolatility), `Max DD: ${fmtP(rm.maxDrawdown)}`,      null);
+    setKPI('kpi-var1d',  fmt.dkk(varData.historicalVaR1dDKK),
+      varData.historicalVaR1dPct!=null ? fmtP(-varData.historicalVaR1dPct)+' of portfolio' : '',
+      -1);
+
+    // ── Risk tab: Performance vs Benchmark ────────────────────────────────────
+    const asOf = rm.asOf??'';
+    document.getElementById('riskMetricsBadge').textContent = `URTH · ${asOf}`;
+    document.getElementById('perfMetricsBody').innerHTML = `
+      <div class="risk-row"><span class="risk-label">Portfolio YTD</span>
+        <span class="risk-value ${(rm.portfolioReturnYTD??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.portfolioReturnYTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Benchmark YTD (URTH)</span>
+        <span class="risk-value ${(rm.benchmarkReturnYTD??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.benchmarkReturnYTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Excess Return YTD</span>
+        <span class="risk-value ${(rm.excessReturnYTD??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.excessReturnYTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Portfolio MTD</span>
+        <span class="risk-value ${(rm.portfolioReturnMTD??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.portfolioReturnMTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Benchmark MTD</span>
+        <span class="risk-value ${(rm.benchmarkReturnMTD??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.benchmarkReturnMTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Portfolio DTD</span>
+        <span class="risk-value ${(rm.portfolioReturnDTD??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.portfolioReturnDTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Beta</span>
+        <span class="risk-value">${fmtN(rm.beta)}</span></div>
+      <div class="risk-row"><span class="risk-label">Alpha (ann.)</span>
+        <span class="risk-value ${(rm.alpha??0)>=0?'pos-val':'neg-val'}">${fmtP(rm.alpha)}</span></div>
+      <div class="risk-row"><span class="risk-label">Tracking Error</span>
+        <span class="risk-value warn">${fmtP(rm.trackingError)}</span></div>
+      <div class="risk-row"><span class="risk-label">Information Ratio</span>
+        <span class="risk-value ${(rm.informationRatio??0)>=0?'pos-val':'neg-val'}">${fmtN(rm.informationRatio)}</span></div>
+    `;
+
+    // ── Risk tab: Risk Metrics ─────────────────────────────────────────────────
+    const mv = varData.portfolioMarketValueDKK;
+    document.getElementById('riskMetricsBody').innerHTML = `
+      <div class="risk-row"><span class="risk-label">Portfolio Value</span>
+        <span class="risk-value">${fmt.dkk(mv)}</span></div>
+      <div class="risk-row"><span class="risk-label">VaR 95% (1-day)</span>
+        <span class="risk-value danger">${fmt.dkk(varData.historicalVaR1dDKK)}</span></div>
+      <div class="risk-row"><span class="risk-label">Ann. Volatility</span>
+        <span class="risk-value warn">${fmtP(rm.annualizedVolatility)}</span></div>
+      <div class="risk-row"><span class="risk-label">Max Drawdown</span>
+        <span class="risk-value danger">${fmtP(rm.maxDrawdown)}</span></div>
+      <div class="risk-row"><span class="risk-label">Sharpe Ratio</span>
+        <span class="risk-value">${fmtN(rm.sharpeRatio)}</span></div>
+      <div class="risk-row"><span class="risk-label">Sortino Ratio</span>
+        <span class="risk-value">${fmtN(rm.sortinoRatio)}</span></div>
+      <div class="risk-row"><span class="risk-label">Observations</span>
+        <span class="risk-value">${rm.observations??'—'} days</span></div>
+      <div class="risk-row"><span class="risk-label">As Of</span>
+        <span class="risk-value">${asOf}</span></div>
+    `;
+  }catch(e){
+    console.error('loadRiskMetrics error:',e);
+    ['perfMetricsBody','riskMetricsBody'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.innerHTML=`<div class="error-msg">⚠ ${e.message}</div>`;
+    });
+  }
+}
 
 async function loadRisk(){
   try{
