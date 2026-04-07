@@ -166,6 +166,35 @@
       </div>
     </div>
 
+    <!-- Risk Metrics KPI strip (populated by loadRiskMetrics) -->
+    <div class="kpi-strip" style="margin-top:-8px;">
+      <div class="kpi">
+        <div class="kpi-label">Portfolio YTD</div>
+        <div class="kpi-value" id="kpi-ytd"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-ytd-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Benchmark YTD (URTH)</div>
+        <div class="kpi-value" id="kpi-bench-ytd"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-bench-ytd-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Excess Return YTD</div>
+        <div class="kpi-value" id="kpi-excess"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-excess-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Sharpe Ratio</div>
+        <div class="kpi-value" id="kpi-sharpe"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-sharpe-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Ann. Volatility</div>
+        <div class="kpi-value" id="kpi-vol"><div class="skeleton loading-kpi"></div></div>
+        <div class="kpi-sub" id="kpi-vol-sub"><div class="skeleton loading-sub"></div></div>
+      </div>
+    </div>
+
     <div class="grid-3">
       <div class="panel">
         <div class="panel-header">
@@ -239,6 +268,26 @@
         </div>
       </div>
     </div>
+    <!-- Performance & Risk Metrics panel (from /api/risk-metrics) -->
+    <div class="grid-2" style="margin-bottom:12px;">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Performance vs Benchmark</span><span class="panel-badge" id="riskMetricsBadge">URTH</span></div>
+        <div class="panel-body" id="perfMetricsBody">
+          <div class="skeleton" style="height:14px;margin-bottom:12px;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:80%;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:70%;"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Risk Metrics</span></div>
+        <div class="panel-body" id="riskMetricsBody">
+          <div class="skeleton" style="height:14px;margin-bottom:12px;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:75%;"></div>
+          <div class="skeleton" style="height:14px;margin-bottom:12px;width:85%;"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="panel grid-full">
       <div class="panel-header">
         <span class="panel-title">VaR Over Time</span>
@@ -335,7 +384,7 @@ document.querySelectorAll('.tab').forEach(t=>{
   });
 });
 function loadTab(id){
-  if(id==='risk')loadRisk();
+  if(id==='risk'){loadRisk();loadRiskMetrics();}
   if(id==='exposures')loadExposures();
   if(id==='charts')loadMarketChart(); // auto-load default ticker
 }
@@ -432,6 +481,7 @@ async function loadSummary(){
     loadVarForOverview();
     loadTopSectorKPI();
     loadVarHistoryChart();
+    loadRiskMetrics();
 
   }catch(e){
     console.error('Summary error:',e);
@@ -518,6 +568,56 @@ async function loadVarHistoryChart(){
 // API: portfolioName, confidenceLevel, observations, averageDailyReturnPct,
 //      historicalVaR1dPct, historicalVaR1dDKK, portfolioMarketValueDKK,
 //      history[]: { date, varDkk }
+
+async function loadRiskMetrics(){
+  try{
+    const r=await fetch(apiUrl('risk-metrics'));
+    const d=await r.json();
+    if(!d.success) throw new Error(d.error||'risk-metrics failed');
+
+    // Overview KPI strip
+    const fmtPct2=v=>(v!=null?(v>=0?'+':'')+v.toFixed(2)+'%':'—');
+    const fmtNum2=v=>(v!=null?v.toFixed(2):'—');
+    setKPI('kpi-ytd',fmtPct2(d.portfolioReturnYTD),`MTD: ${fmtPct2(d.portfolioReturnMTD)}`,d.portfolioReturnYTD);
+    setKPI('kpi-bench-ytd',fmtPct2(d.benchmarkReturnYTD),`MTD: ${fmtPct2(d.benchmarkReturnMTD)}`,d.benchmarkReturnYTD);
+    setKPI('kpi-excess',fmtPct2(d.excessReturnYTD),`Alpha: ${fmtPct2(d.alpha)}`,d.excessReturnYTD);
+    setKPI('kpi-sharpe',fmtNum2(d.sharpeRatio),`Sortino: ${fmtNum2(d.sortinoRatio)}`,d.sharpeRatio);
+    setKPI('kpi-vol',fmtPct2(d.annualizedVolatility),`Max DD: ${fmtPct2(d.maxDrawdown)}`,null);
+
+    // Risk tab — Performance vs Benchmark panel
+    const asOf=d.asOf??'';
+    document.getElementById('riskMetricsBadge').textContent=`URTH · ${asOf}`;
+    document.getElementById('perfMetricsBody').innerHTML=`
+      <div class="risk-row"><span class="risk-label">Portfolio YTD</span><span class="risk-value ${(d.portfolioReturnYTD??0)>=0?'pos-val':'neg-val'}">${fmtPct2(d.portfolioReturnYTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Benchmark YTD (URTH)</span><span class="risk-value ${(d.benchmarkReturnYTD??0)>=0?'pos-val':'neg-val'}">${fmtPct2(d.benchmarkReturnYTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Excess Return YTD</span><span class="risk-value ${(d.excessReturnYTD??0)>=0?'pos-val':'neg-val'}">${fmtPct2(d.excessReturnYTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Portfolio MTD</span><span class="risk-value ${(d.portfolioReturnMTD??0)>=0?'pos-val':'neg-val'}">${fmtPct2(d.portfolioReturnMTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Benchmark MTD</span><span class="risk-value ${(d.benchmarkReturnMTD??0)>=0?'pos-val':'neg-val'}">${fmtPct2(d.benchmarkReturnMTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Portfolio DTD</span><span class="risk-value ${(d.portfolioReturnDTD??0)>=0?'pos-val':'neg-val'}">${fmtPct2(d.portfolioReturnDTD)}</span></div>
+      <div class="risk-row"><span class="risk-label">Beta</span><span class="risk-value">${fmtNum2(d.beta)}</span></div>
+      <div class="risk-row"><span class="risk-label">Alpha (ann.)</span><span class="risk-value ${(d.alpha??0)>=0?'pos-val':'neg-val'}">${fmtPct2(d.alpha)}</span></div>
+      <div class="risk-row"><span class="risk-label">Tracking Error</span><span class="risk-value warn">${fmtPct2(d.trackingError)}</span></div>
+      <div class="risk-row"><span class="risk-label">Information Ratio</span><span class="risk-value ${(d.informationRatio??0)>=0?'pos-val':'neg-val'}">${fmtNum2(d.informationRatio)}</span></div>
+    `;
+
+    // Risk tab — Risk Metrics panel
+    document.getElementById('riskMetricsBody').innerHTML=`
+      <div class="risk-row"><span class="risk-label">Annualized Volatility</span><span class="risk-value warn">${fmtPct2(d.annualizedVolatility)}</span></div>
+      <div class="risk-row"><span class="risk-label">Max Drawdown</span><span class="risk-value danger">${fmtPct2(d.maxDrawdown)}</span></div>
+      <div class="risk-row"><span class="risk-label">Sharpe Ratio</span><span class="risk-value">${fmtNum2(d.sharpeRatio)}</span></div>
+      <div class="risk-row"><span class="risk-label">Sortino Ratio</span><span class="risk-value">${fmtNum2(d.sortinoRatio)}</span></div>
+      <div class="risk-row"><span class="risk-label">Risk-Free Rate</span><span class="risk-value">3.50%</span></div>
+      <div class="risk-row"><span class="risk-label">Observations</span><span class="risk-value">${d.observations??'—'} days</span></div>
+      <div class="risk-row"><span class="risk-label">As Of</span><span class="risk-value">${asOf}</span></div>
+    `;
+  }catch(e){
+    console.error('loadRiskMetrics error:',e);
+    ['perfMetricsBody','riskMetricsBody'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.innerHTML=`<div class="error-msg">⚠ ${e.message}</div>`;
+    });
+  }
+}
 
 async function loadRisk(){
   try{
