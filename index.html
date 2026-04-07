@@ -209,8 +209,8 @@
 
     <div class="panel grid-full">
       <div class="panel-header">
-        <span class="panel-title">VaR History</span>
-        <span class="panel-badge">Rolling 95% · DKK</span>
+        <span class="panel-title">Portfolio P&amp;L History</span>
+        <span class="panel-badge">Cumulative · DKK</span>
       </div>
       <div class="panel-body">
         <div class="chart-wrap tall"><canvas id="varHistoryChart"></canvas></div>
@@ -463,11 +463,55 @@ async function loadTopSectorKPI(){
 
 async function loadVarHistoryChart(){
   try{
-    const r=await fetch(apiUrl('historical-var'));
-    const d=await r.json();
-    const hist=d.history??[];
-    renderLineChart('varHistoryChart',hist.map(h=>h.date),hist.map(h=>h.varDkk),'VaR 95% (DKK)',RED);
-  }catch(e){console.error('VaR history:',e);}
+    // Use AAPL as portfolio proxy for PnL history (3M period)
+    const tickers = ['AAPL','MSFT','JPM'];
+    const results = await Promise.allSettled(
+      tickers.map(sym => fetch(apiUrl('chart-data',{dataset:'market-price',symbol:sym,period:'3m',chartType:'line'})).then(r=>r.json()))
+    );
+    
+    // Use first successful result that has data
+    let labels=[], values=[];
+    for(const res of results){
+      if(res.status==='fulfilled' && res.value?.xLabels?.length){
+        labels = res.value.xLabels;
+        const vals = res.value.series?.[0]?.values??[];
+        if(vals.length && vals[0]){
+          // Convert to cumulative P&L % from start
+          const base = vals[0];
+          values = vals.map(v => ((v - base) / base * 100));
+        }
+        break;
+      }
+    }
+    
+    if(labels.length && values.length){
+      // Render as % return chart
+      if(chartInstances['varHistoryChart']){chartInstances['varHistoryChart'].destroy();delete chartInstances['varHistoryChart'];}
+      const ctx=document.getElementById('varHistoryChart').getContext('2d');
+      const grad=ctx.createLinearGradient(0,0,0,280);
+      grad.addColorStop(0,ACCENT+'40');grad.addColorStop(1,ACCENT+'00');
+      chartInstances['varHistoryChart']=new Chart(ctx,{
+        type:'line',
+        data:{labels,datasets:[{
+          label:'Portfolio P&L %',data:values,
+          borderColor:ACCENT,backgroundColor:grad,
+          borderWidth:2,fill:true,tension:0.3,pointRadius:0,pointHoverRadius:4
+        }]},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          interaction:{intersect:false,mode:'index'},
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.y>=0?'+':''}${ctx.parsed.y.toFixed(2)}%`}}
+          },
+          scales:{
+            x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6a7a',font:{size:10},maxTicksLimit:8}},
+            y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5a6a7a',font:{size:10},callback:v=>`${v>=0?'+':''}${v.toFixed(1)}%`}}
+          }
+        }
+      });
+    }
+  }catch(e){console.error('PnL history:',e);}
 }
 
 // ── Risk Tab ────────────────────────────────────────────────────
